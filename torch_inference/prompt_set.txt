@@ -1,0 +1,3 @@
+Render the following text at the center of the image on a clean background: 'Flow on, river! flow with the flood-tide, and ebb with the ebb-tide! Frolic on, crested and scallop-edg'd waves!'
+A 2*2 grid of photos of the same person. The upper left shows happy face, upper right shows sad face, lower left shows angry face, lower right shows exhausted face.
+A 2*2 grid of photos of the same person. The upper left shows exhausted face, upper right shows happy face, lower left shows sad face, lower right shows angry face.
