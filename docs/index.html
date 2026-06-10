@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Project page for i1, a simple and fully open recipe for strong text-to-image models.">
+    <title>i1: A Simple and Fully Open Recipe for Strong Text-to-Image Models</title>
+    <link rel="stylesheet" href="static/css/index.css?v=17">
+  </head>
+  <body id="top">
+    <nav class="topbar" aria-label="Section navigation">
+      <a class="brand" href="#top">i1</a>
+      <div class="nav-links">
+        <a href="#motivation"><span>01</span> Motivation</a>
+        <a href="#setup"><span>02</span> Controlled Experiment Setup</a>
+        <a href="#model-results"><span>03</span> Model Designs</a>
+        <a href="#data-results"><span>04</span> Data Designs</a>
+        <a href="#i1-training"><span>05</span> Training &amp; Evaluation</a>
+      </div>
+      <details class="nav-menu">
+        <summary>Sections</summary>
+        <a href="#motivation">01 Motivation</a>
+        <a href="#setup">02 Controlled Experiment Setup</a>
+        <a href="#model-results">03 Model Designs</a>
+        <a href="#data-results">04 Data Designs</a>
+        <a href="#i1-training">05 Training &amp; Evaluation</a>
+      </details>
+    </nav>
+
+    <header class="hero">
+      <div class="container hero-stack">
+        <h1>i1: A Simple and Fully Open Recipe for Strong Text-to-Image Models</h1>
+        <p class="authors"><a href="https://boyazeng.github.io">Boya Zeng</a>, <a href="https://luotianze666.github.io">Tianze Luo</a>, <a href="https://urrealhero.github.io/MyPersonalWeb/">Shu Pu</a>, <a href="https://juchengshen.github.io">Jucheng Shen</a>, <a href="https://taiminglu.com">Taiming Lu</a>, <a href="http://gabesarch.me">Gabriel Sarch</a>, <a href="https://www.cs.princeton.edu/~zhuangl">Zhuang Liu</a><sup>&dagger;</sup></p>
+        <p class="corresponding">&dagger; Corresponding Author</p>
+        <p class="affiliation">Princeton University</p>
+        <div class="button-row">
+          <a class="button" href="https://arxiv.org/abs/2606.11289">Paper</a>
+          <a class="button" href="https://github.com/zlab-princeton/i1">Code</a>
+          <a class="button" href="https://huggingface.co/zlab-princeton/i1-3B">Model</a>
+          <a class="button" href="https://huggingface.co/datasets/zlab-princeton/i1-captions">Data</a>
+        </div>
+        <figure class="figure-card hero-figure">
+          <img src="static/images/teaser.png" alt="Benchmark comparison showing i1 among leading text-to-image models.">
+        </figure>
+        <p class="figure-note">We investigate the design space of text-to-image diffusion models to understand how modeling and data choices affect model capabilities. This exploration culminates in <strong>i1</strong>, a 3B-parameter model that performs competitively with leading open-weight models at 1024-resolution, as measured by the average percentage score across GenEval, DPG-Bench, PRISM, CVTG-2K, and LongText-Bench. We open-source our model, code, and data to support future research.</p>
+      </div>
+    </header>
+
+    <main>
+      <section class="section compact">
+        <div class="container">
+          <h2>Abstract</h2>
+          <div class="abstract-panel">
+            <p>Diffusion models have consistently driven progress in text-to-image generation. However, it is challenging to attribute recent progress to specific modeling and data choices: state-of-the-art open-weight models provide limited ablations, and do not disclose their training data and full training details. The research community needs fully open (weights, data, and code) models as a foundation for further research; yet existing fully open models still fall significantly short of leading models in performance. In this project, we conduct a systematic investigation of the modeling and data design choices in text-to-image diffusion training and inference with 300+ controlled experiments totaling 700K+ TPU v6e hours. Our experiments highlight several empirical findings (<i>e.g.</i>, equal weighting is a strong default for mixing curated datasets) and simple design decisions (<i>e.g.</i>, larger text encoder adapters improve performance with minimal added parameters) for training strong models. Guided by these insights, we train <strong>i1</strong>, a 3B-parameter text-to-image diffusion model using only publicly available datasets. <strong>i1</strong> is competitive with leading models on five representative benchmarks (GenEval, DPG, PRISM, CVTG-2K, and LongText), and outperforms the best existing fully open model by 29.5 absolute percentage points on average. We provide the <strong>i1</strong> checkpoints, training and inference code, and the data processing pipeline. Together, our findings and the <strong>i1</strong> recipe establish a practical foundation for future open research in text-to-image diffusion models.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section band">
+        <div class="container">
+          <div class="showcase-row">
+            <div>
+              <figure class="figure-card">
+                <img src="static/images/showcase_general.jpg" alt="Curated general image generation examples from i1.">
+              </figure>
+              <p class="figure-note">Curated showcase of <strong>i1</strong> in general image generation.</p>
+            </div>
+            <div>
+              <figure class="figure-card">
+                <img src="static/images/showcase_text_render.jpg" alt="Curated text-rendering examples from i1.">
+              </figure>
+              <p class="figure-note">Curated showcase of <strong>i1</strong> in text-rendering.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="motivation">
+        <div class="container">
+          <div class="section-heading">
+            <h2>Motivation</h2>
+          </div>
+          <div class="prose">
+            <p>Recent text-to-image models are strong, but their progress is hard to attribute. Leading open-weight systems release checkpoints without the training data and full recipe, and most technical reports bundle architecture, training, and data decisions into a single model with limited ablation.</p>
+            <p>We use controlled experiments to carefully study and understand the design space, then combine the designs that work into <strong>i1</strong>. The result is a fully open model that uses public datasets, simple components, and a recipe that can be studied and built upon.</p>
+          </div>
+          <div class="metric-grid">
+            <div class="metric">
+              <span class="metric-value">300+</span>
+              <span class="metric-label">controlled modeling and data experiments</span>
+            </div>
+            <div class="metric">
+              <span class="metric-value">700K+</span>
+              <span class="metric-label">TPU v6e hours in the investigation</span>
+            </div>
+            <div class="metric">
+              <span class="metric-value">3B</span>
+              <span class="metric-label">parameters in the final i1 model</span>
+            </div>
+            <div class="metric">
+              <span class="metric-value">29.5</span>
+              <span class="metric-label">average % points gain over the best prior fully open model</span>
+            </div>
+          </div>
+          <figure class="figure-card">
+            <img src="static/images/figures/i1_flowchart.png" alt="High-level illustration of the final i1 model recipe.">
+          </figure>
+          <p class="figure-note"><strong>High-level illustration of our final i1 model</strong>. Rather than introducing major new network modules, <strong>i1</strong> combines carefully selected modeling and data design choices into a simple and strong text-to-image model.</p>
+        </div>
+      </section>
+
+      <section class="section band" id="setup">
+        <div class="container">
+          <div class="section-heading">
+            <h2>Controlled Experiment Setup</h2>
+          </div>
+          <div class="prose">
+            <p>All controlled experiments start from the same 256-resolution pre-training baseline and independently vary one design choice at a time (<i>i.e.</i>, modifications are <strong>not</strong> accumulated across experiments).</p>
+            <p><strong>Model</strong>: the baseline uses an XL/2-sized, LightningDiT-style cross-attention backbone with QK-norm, long skip connections, T5Gemma-2B as the text encoder, and FLUX.2 VAE.</p>
+            <p><strong>Data</strong>: we combine 12 curated, publicly available datasets and generate long synthetic captions with Qwen3-VL-30B-A3B.</p>
+            <p><strong>Training and inference</strong>: each model is trained for 500K iterations with batch size 512 and learning rate 1e-4, then sampled with a 250-step Euler integrator and CFG scale 12.</p>
+            <p><strong>Evaluation</strong>: we evaluate with DPG-Bench, PRISM-Bench, and LongText-Bench to cover general prompt following, aesthetics, and text rendering.</p>
+          </div>
+          <figure class="figure-card">
+            <img src="static/images/figures/baseline_flowchart.png" alt="High-level illustration of the baseline controlled-experiment model.">
+          </figure>
+          <p class="figure-note"><strong>High-level illustration of our baseline for controlled experiments</strong>. We build a standard cross-attention architecture on top of LightningDiT and add QK-norm for training stability. We also include long skip connections, an underused design choice that we revisit and find helpful for performance.</p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>baseline variant</th>
+                  <th>DPG &uarr;</th>
+                  <th>PRISM &uarr;</th>
+                  <th>LongText &uarr;</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>cross-attention</td>
+                  <td>84.66</td>
+                  <td>56.4</td>
+                  <td>0.211</td>
+                </tr>
+                <tr>
+                  <td>single-stream</td>
+                  <td>85.89</td>
+                  <td>55.6</td>
+                  <td>0.293</td>
+                </tr>
+                <tr>
+                  <td>dual-stream</td>
+                  <td>86.82</td>
+                  <td>58.3</td>
+                  <td>0.439</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note"><strong>Benchmark performance of baselines</strong>. The cross-attention variant is the default controlled-experiment baseline, while selected findings are validated across single-stream and dual-stream variants.</p>
+        </div>
+      </section>
+
+      <section class="section" id="model-results">
+        <div class="container">
+          <div class="section-heading">
+            <h2>Model Designs</h2>
+          </div>
+
+          <h3>Text and Noise Conditioning</h3>
+          <div class="prose">
+            <p>We compare CLIP-style encoders, encoder-decoder models, and decoder-only LLMs/VLMs as text encoders for text-to-image training. Although decoder-only LLMs/VLMs are now widely used in recent text-to-image systems, encoder-decoder T5Gemma models achieve the strongest overall results in our comparison.</p>
+          </div>
+          <figure class="figure-card">
+            <img src="static/images/figures/text_encoder.png" alt="Text encoder benchmark performance across DPG, PRISM, and LongText.">
+          </figure>
+          <p class="figure-note"><strong>Text encoders' performance</strong> across benchmarks. Under our modeling setup, the encoder-decoder T5Gemma models outperform representative decoder-only LLM/VLMs and CLIP-style models.</p>
+          <div class="finding-box">
+            <span class="finding-label">Finding 1</span>
+            <p>Both encoder-decoder models and decoder-only LLMs/VLMs can be competitive text encoders for text-to-image diffusion models.</p>
+            <p><strong>Design</strong>: We use T5Gemma-2B, an encoder-decoder model, as the text encoder in <strong>i1</strong> since it is one of the strongest models in our comparison.</p>
+          </div>
+
+          <div class="prose">
+            <p>Combining multiple text encoders helps, but further ablations show the gain can largely be reproduced by increasing adapter capacity for a single encoder. This is simpler and cheaper than concatenating features from multiple encoders, which increases text sequence length.</p>
+          </div>
+          <div class="table-wrap medium-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>text encoder</th>
+                  <th>DPG &uarr;</th>
+                  <th>PRISM &uarr;</th>
+                  <th>LongText &uarr;</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>T5Gemma-2B</td><td>84.66</td><td>56.4</td><td>0.211</td></tr>
+                <tr><td>repeat w/1 MLP</td><td>84.93</td><td>55.8</td><td>0.225</td></tr>
+                <tr><td>repeat w/2 MLP</td><td><strong>85.09</strong></td><td><strong>56.5</strong></td><td><strong>0.309</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note"><strong>Concatenating two copies of T5Gemma-2B feature sequences</strong> and using two separate MLP adapters (equivalent to combining two T5Gemma-2B text encoders) yields a similar improvement as combining different text encoders, whereas using a shared MLP adapter does not. This suggests the improvement may come from additional adapter parameters, not separate text encoders.</p>
+          <figure class="figure-card">
+            <img src="static/images/figures/larger_connector.png" alt="Larger text encoder adapter performance across backbone architectures.">
+          </figure>
+          <p class="figure-note"><strong>Using larger adapters for the text encoder consistently improves performance</strong> across backbone architectures. Beyond 2 transformer blocks, using larger adapters brings marginal further gains.</p>
+          <div class="prose">
+            <p>Beyond studying multiple text encoders and larger adapters, we also ablate AdaLN conditioning on pooled text embeddings, timestep embeddings, or both. Although AdaLN contributes many parameters, it brings only marginal benefit.</p>
+          </div>
+          <div class="table-wrap wide-table adapter-table">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th></th>
+                  <th colspan="4">MLP adapter (default)</th>
+                  <th colspan="4">transformer adapter (1x block)</th>
+                </tr>
+                <tr>
+                  <th></th>
+                  <th></th>
+                  <th>#params</th>
+                  <th>DPG</th>
+                  <th>PRISM</th>
+                  <th>LongText</th>
+                  <th>#params</th>
+                  <th>DPG</th>
+                  <th>PRISM</th>
+                  <th>LongText</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="group"><td colspan="10">cross-attn</td></tr>
+                <tr><td></td><td>default</td><td>0.89B</td><td>84.66</td><td>56.4</td><td>0.211</td><td>0.91B</td><td>86.33</td><td>58.7</td><td>0.414</td></tr>
+                <tr><td></td><td>+2 encoders</td><td>0.90B</td><td>85.37 <span class="delta better">&uarr;&nbsp;0.71</span></td><td>58.8 <span class="delta better">&uarr;&nbsp;2.4</span></td><td>0.272 <span class="delta better">&uarr;&nbsp;0.061</span></td><td>0.94B</td><td>86.47 <span class="delta better">&uarr;&nbsp;0.14</span></td><td>59.5 <span class="delta better">&uarr;&nbsp;0.8</span></td><td>0.491 <span class="delta better">&uarr;&nbsp;0.077</span></td></tr>
+                <tr><td></td><td>no pooled emb</td><td>0.89B</td><td>85.98 <span class="delta better">&uarr;&nbsp;1.32</span></td><td>57.5 <span class="delta better">&uarr;&nbsp;1.1</span></td><td>0.391 <span class="delta better">&uarr;&nbsp;0.180</span></td><td>0.91B</td><td>86.37 <span class="delta better">&uarr;&nbsp;0.04</span></td><td>59.4 <span class="delta better">&uarr;&nbsp;0.7</span></td><td>0.446 <span class="delta better">&uarr;&nbsp;0.032</span></td></tr>
+                <tr><td></td><td>no timestep</td><td>0.89B</td><td>82.58 <span class="delta worse">&darr;&nbsp;2.08</span></td><td>54.7 <span class="delta worse">&darr;&nbsp;1.7</span></td><td>0.185 <span class="delta worse">&darr;&nbsp;0.026</span></td><td>0.91B</td><td>84.71 <span class="delta worse">&darr;&nbsp;1.62</span></td><td>58.9 <span class="delta better">&uarr;&nbsp;0.2</span></td><td>0.418 <span class="delta better">&uarr;&nbsp;0.004</span></td></tr>
+                <tr><td></td><td>no AdaLN</td><td>0.66B</td><td>84.99 <span class="delta better">&uarr;&nbsp;0.33</span></td><td>57.4 <span class="delta better">&uarr;&nbsp;1.0</span></td><td>0.351 <span class="delta better">&uarr;&nbsp;0.140</span></td><td>0.67B</td><td>85.13 <span class="delta worse">&darr;&nbsp;1.20</span></td><td>59.7 <span class="delta better">&uarr;&nbsp;1.0</span></td><td>0.413 <span class="delta worse">&darr;&nbsp;0.001</span></td></tr>
+                <tr class="group"><td colspan="10">single-stream</td></tr>
+                <tr><td></td><td>default</td><td>0.82B</td><td>85.89</td><td>55.6</td><td>0.293</td><td>0.83B</td><td>87.64</td><td>60.0</td><td>0.472</td></tr>
+                <tr><td></td><td>+2 encoders</td><td>0.83B</td><td>84.89 <span class="delta worse">&darr;&nbsp;1.00</span></td><td>56.3 <span class="delta better">&uarr;&nbsp;0.7</span></td><td>0.439 <span class="delta better">&uarr;&nbsp;0.146</span></td><td>0.87B</td><td>87.29 <span class="delta worse">&darr;&nbsp;0.35</span></td><td>59.0 <span class="delta worse">&darr;&nbsp;1.0</span></td><td>0.428 <span class="delta worse">&darr;&nbsp;0.044</span></td></tr>
+                <tr><td></td><td>no AdaLN</td><td>0.57B</td><td>87.38 <span class="delta better">&uarr;&nbsp;1.49</span></td><td>59.0 <span class="delta better">&uarr;&nbsp;3.4</span></td><td>0.390 <span class="delta better">&uarr;&nbsp;0.097</span></td><td>0.58B</td><td>87.39 <span class="delta worse">&darr;&nbsp;0.25</span></td><td>59.5 <span class="delta worse">&darr;&nbsp;0.5</span></td><td>0.410 <span class="delta worse">&darr;&nbsp;0.062</span></td></tr>
+                <tr class="group"><td colspan="10">dual-stream</td></tr>
+                <tr><td></td><td>default</td><td>1.24B</td><td>86.82</td><td>58.3</td><td>0.439</td><td>1.25B</td><td>87.67</td><td>60.7</td><td>0.576</td></tr>
+                <tr><td></td><td>+2 encoders</td><td>1.25B</td><td>87.34 <span class="delta better">&uarr;&nbsp;0.52</span></td><td>59.6 <span class="delta better">&uarr;&nbsp;1.3</span></td><td>0.514 <span class="delta better">&uarr;&nbsp;0.075</span></td><td>1.29B</td><td>87.76 <span class="delta better">&uarr;&nbsp;0.09</span></td><td>60.8 <span class="delta better">&uarr;&nbsp;0.1</span></td><td>0.588 <span class="delta better">&uarr;&nbsp;0.012</span></td></tr>
+                <tr><td></td><td>no AdaLN</td><td>1.01B</td><td>87.82 <span class="delta better">&uarr;&nbsp;1.00</span></td><td>60.3 <span class="delta better">&uarr;&nbsp;2.0</span></td><td>0.508 <span class="delta better">&uarr;&nbsp;0.069</span></td><td>1.02B</td><td>87.38 <span class="delta worse">&darr;&nbsp;0.29</span></td><td>60.7 <span class="delta same">0.0</span></td><td>0.554 <span class="delta worse">&darr;&nbsp;0.022</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note"><strong>Impact of text and noise conditioning when using an MLP vs transformer adapter</strong>. A larger transformer adapter improves performance with minimal added parameters, multiple encoders provide much smaller benefit with the larger adapter, and removing AdaLN conditioning marginally degrades performance.</p>
+          <div class="finding-box">
+            <span class="finding-label">Finding 2</span>
+            <p>The gains from using multiple text encoders can be similarly captured by increasing the adapter capacity for a single text encoder. Compared to using multiple encoders, increasing adapter capacity has lower memory and compute cost because it does not increase the text sequence length.</p>
+            <p><strong>Design</strong>: We use a single, strong text encoder with an expressive text encoder adapter in <strong>i1</strong>.</p>
+          </div>
+          <div class="finding-box">
+            <span class="finding-label">Finding 3</span>
+            <p>Despite the large number of parameters introduced by AdaLN, conditioning on pooled text embeddings, timestep embeddings, or both through AdaLN provides only marginal benefit.</p>
+            <p><strong>Design</strong>: We do not use AdaLN in <strong>i1</strong>.</p>
+          </div>
+
+          <h3>Backbone Architecture</h3>
+          <div class="prose">
+            <p>For the backbone, we revisit long skip connections and compare cross-attention, single-stream, and dual-stream families across model sizes. The strongest recipe uses a dual-stream MMDiT backbone with long skip connections.</p>
+          </div>
+          <figure class="figure-card">
+            <img src="static/images/figures/long_skip_scaling.png" alt="Long skip connection scaling results.">
+          </figure>
+          <p class="figure-note"><strong>Long skip connections</strong> can improve the performance-parameter trade-off for dual-stream models.</p>
+          <div class="finding-box">
+            <span class="finding-label">Finding 4</span>
+            <p>Long skip connections can improve the performance-parameter trade-off.</p>
+            <p><strong>Design</strong>: We use long skip connections in <strong>i1</strong>.</p>
+          </div>
+
+          <figure class="figure-card">
+            <img src="static/images/figures/backbone_scaling.png" alt="Backbone family scaling comparison.">
+          </figure>
+          <p class="figure-note"><strong>Backbone family</strong>. We compare cross-attention, single-stream, and dual-stream backbones across model sizes and find that the dual-stream backbone achieves the best overall performance.</p>
+          <div class="finding-box">
+            <span class="finding-label">Finding 5</span>
+            <p>The dual-stream backbone has the best trade-off between performance and parameter count among the cross-attention, single-stream, and dual-stream backbone families.</p>
+            <p><strong>Design</strong>: We use the dual-stream backbone in <strong>i1</strong>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section band" id="data-results">
+        <div class="container">
+          <div class="section-heading">
+            <h2>Data Designs</h2>
+          </div>
+
+          <h3>Synthetic Captions and Prompt Rewrite</h3>
+          <div class="prose">
+            <p>We compare VLMs as synthetic captioners based on the downstream text-to-image performance.</p>
+          </div>
+          <figure class="figure-card">
+            <img src="static/images/figures/captioner.png" alt="Synthetic captioner benchmark comparison.">
+          </figure>
+          <p class="figure-note"><strong>The choice of synthetic captioner is important for downstream text-to-image performance</strong>. Due to resource constraints, we generate captions and train only on ImageNet-22K images rather than the full image dataset.</p>
+          <div class="finding-box">
+            <span class="finding-label">Finding 6</span>
+            <p>The choice of VLM used to synthesize captions for training images has a substantial impact on downstream text-to-image performance.</p>
+            <p><strong>Design</strong>: We use Qwen3-VL-30B-A3B to generate synthetic captions for training <strong>i1</strong>, since captions from this model lead to strong downstream performance.</p>
+          </div>
+
+          <div class="prose">
+            <p>We vary how much long <i>vs.</i> short caption data is used during training and evaluate trained models on short GenEval prompts. Long captions lead to stronger models, but these models underperform on short prompts. This issue can be mitigated by repeating or rewriting prompts.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th rowspan="2">% of long captions<br>in training captions</th>
+                  <th rowspan="2">original prompts<br>(short)</th>
+                  <th colspan="3">repeated prompts</th>
+                  <th rowspan="2">rewritten prompts<br>(long)</th>
+                </tr>
+                <tr>
+                  <th>4&times;</th>
+                  <th>12&times;</th>
+                  <th>20&times;</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>0%</td><td><strong>0.47</strong></td><td>0.55</td><td>0.34</td><td>0.24</td><td>0.60</td></tr>
+                <tr><td>20%</td><td><strong>0.47</strong></td><td>0.54</td><td>0.53</td><td>0.50</td><td>0.67</td></tr>
+                <tr><td>40%</td><td>0.35</td><td>0.59</td><td>0.55</td><td><strong>0.54</strong></td><td>0.70</td></tr>
+                <tr><td>60%</td><td>0.37</td><td><strong>0.60</strong></td><td><strong>0.57</strong></td><td><strong>0.54</strong></td><td><strong>0.73</strong></td></tr>
+                <tr><td>80%</td><td>0.26</td><td>0.57</td><td>0.54</td><td>0.47</td><td><strong>0.73</strong></td></tr>
+                <tr><td>100%</td><td>0.17</td><td>0.48</td><td>0.49</td><td>0.46</td><td><strong>0.73</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note"><strong>Training captions and inference prompts should have aligned lengths</strong> (each number is a GenEval score). Training only on long captions and using LLM-based prompt rewriting to increase inference prompt length leads to the strongest performance. Due to resource constraints, we generate captions and train only on ImageNet-22K images rather than the full image dataset.</p>
+
+          <div class="qualitative-caplen" aria-label="Qualitative examples for caption length and prompt rewrite.">
+            <div class="prompt-cell"><strong>Prompt</strong>: a photo of a wine glass and a bear</div>
+            <img src="static/images/generated/caplen/112_short.png" alt="Wine glass and bear, train short test original.">
+            <img src="static/images/generated/caplen/112_original.png" alt="Wine glass and bear, train long test original.">
+            <img src="static/images/generated/caplen/112_repeat12.png" alt="Wine glass and bear, train long test repeated.">
+            <img src="static/images/generated/caplen/112_rewrite.png" alt="Wine glass and bear, train long test rewritten.">
+            <div class="prompt-cell"><strong>Prompt</strong>: a photo of a zebra right of a parking meter</div>
+            <img src="static/images/generated/caplen/420_short.png" alt="Zebra and parking meter, train short test original.">
+            <img src="static/images/generated/caplen/420_original.png" alt="Zebra and parking meter, train long test original.">
+            <img src="static/images/generated/caplen/420_repeat12.png" alt="Zebra and parking meter, train long test repeated.">
+            <img src="static/images/generated/caplen/420_rewrite.png" alt="Zebra and parking meter, train long test rewritten.">
+            <span></span>
+            <span>train: short,<br>test: original (short)</span>
+            <span>train: long,<br>test: original (short)</span>
+            <span>train: long,<br>test: repeated 12&times; (long)</span>
+            <span>train: long,<br>test: rewritten (long)</span>
+          </div>
+          <p class="figure-note"><strong>Examples from models trained on ImageNet-22K caption variants and tested on GenEval prompt variants</strong>. Training on long captions leads to weaker performance on short prompts, but prompt repetition and rewrite mitigate this.</p>
+          <div class="finding-box">
+            <span class="finding-label">Finding 7</span>
+            <p>Training on short captions weakens overall performance, whereas training on long captions yields stronger models but performs poorly on short test prompts. Prompt rewrite addresses this weakness on short prompts by expanding them, making training on long captions preferable overall.</p>
+            <p><strong>Design</strong>: We only use long captions to train <strong>i1</strong>, and apply inference-time prompt rewriting.</p>
+          </div>
+
+          <h3>Dataset Mixing</h3>
+          <div class="prose">
+            <p>Single-dataset experiments show that ImageNet-22K and YFCC are strong real-image datasets, iNaturalist is the weakest, and text rendering depends heavily on specialized text-rich datasets (<i>e.g.</i>, TextAtlas). Subsampling each dataset to 1M images leaves the broad trends intact.</p>
+          </div>
+          <div class="subfigure-row data-subfigures">
+            <figure>
+              <img src="static/images/figures/single_dataset.png" alt="Single-dataset benchmark results for full datasets.">
+              <figcaption>full dataset</figcaption>
+            </figure>
+            <figure>
+              <img src="static/images/figures/single_dataset_1m.png" alt="Single-dataset benchmark results for 1M subsets.">
+              <figcaption>1M subset</figcaption>
+            </figure>
+          </div>
+          <p class="figure-note"><strong>Benchmark performance for single-dataset training</strong>. Among real datasets, ImageNet-22K and YFCC perform best, while iNaturalist performs worst. Text rendering capability relies strongly on specialized text-rich image datasets. Across most datasets, performance changes only marginally after subsampling each dataset to 1M.</p>
+
+          <div class="prose">
+            <p>We train 3 models using only real, synthetic, or text-rendering data subsets and find that all are important for performance.</p>
+          </div>
+          <figure class="figure-card">
+            <img src="static/images/figures/remove_data_subset.png" alt="Ablation of real, synthetic, and text-rendering image groups.">
+          </figure>
+          <p class="figure-note"><strong>Real, synthetic, and text-rendering images are all important for model performance</strong>. Removing any of them leads to inferior performance on at least one benchmark.</p>
+
+          <div class="prose">
+            <p>Because naive mixing makes large datasets dominate the sampling distribution, we cap dataset weights at several thresholds. More even weights work better, with exact equal weighting as a strong default; after equal weighting, removing iNaturalist helps, while further removing other weak real image datasets does not.</p>
+          </div>
+          <figure class="figure-card">
+            <img src="static/images/figures/threshold.png" alt="Threshold-based dataset weighting results.">
+          </figure>
+          <p class="figure-note"><strong>Threshold-based weighting</strong>. By default, the sampling weight of a dataset is its number of images. We explore dataset-level balancing by capping the sampling weights for all datasets at four hand-picked thresholds. We find that lower thresholds (<i>i.e.</i>, more even weights) generally lead to stronger performance.</p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>datasets</th>
+                  <th>DPG &uarr;</th>
+                  <th>PRISM &uarr;</th>
+                  <th>LongText &uarr;</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>full</td><td>85.14</td><td>58.2</td><td>0.335</td></tr>
+                <tr><td>remove iNaturalist</td><td><strong>85.56</strong></td><td><span class="paper-underline">58.7</span></td><td>0.384</td></tr>
+                <tr><td>remove iNaturalist + Megalith</td><td>85.13</td><td><strong>59.0</strong></td><td><span class="paper-underline">0.438</span></td></tr>
+                <tr><td>remove iNaturalist + Megalith + Places</td><td><span class="paper-underline">85.18</span></td><td>57.9</td><td><strong>0.453</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note"><strong>Removing the weakest real-image datasets</strong> one by one under equal weighting, based on single-dataset results. Removing iNaturalist improves all benchmark scores, while further removing Megalith and Places does not.</p>
+          <div class="finding-box">
+            <span class="finding-label">Finding 8</span>
+            <p>Training the model on equal numbers of images from each dataset, counting repetitions (<i>i.e.</i>, equal weighting across datasets), is a simple and effective dataset mixing strategy.</p>
+            <p><strong>Design</strong>: We equally weight all selected datasets at each training stage of <strong>i1</strong>.</p>
+          </div>
+
+          <div class="prose">
+            <p>With a diverse mix of datasets, repeating training data incurs only marginal performance degradation. Even when every dataset is reduced to 0.4M unique images, performance drops only slightly compared with the full mixture.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>subset size for each dataset</th>
+                  <th>unique #imgs seen</th>
+                  <th>DPG &uarr;</th>
+                  <th>PRISM &uarr;</th>
+                  <th>LongText &uarr;</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>full</td><td>88.1M</td><td>85.56</td><td>58.7</td><td>0.384</td></tr>
+                <tr><td>1.0M</td><td>11.0M</td><td>85.34</td><td>57.7</td><td>0.384</td></tr>
+                <tr><td>0.4M</td><td>4.4M</td><td>84.67</td><td>57.7</td><td>0.382</td></tr>
+                <tr><td>0.1M</td><td>1.1M</td><td>84.71</td><td>57.4</td><td>0.349</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note"><strong>Subsampling mixtures of datasets</strong>. Starting from the final data recipe, subsampling each dataset to 0.4M images gives 4.4M unique images seen instead of 88.1M and only slightly degrades model performance.</p>
+          <div class="finding-box">
+            <span class="finding-label">Finding 9</span>
+            <p>With a diverse mix of image datasets, using fewer unique images and more training epochs causes marginal performance degradation in text-to-image diffusion training.</p>
+            <p><strong>Design</strong>: We subsample high-resolution images to reduce storage requirements for <strong>i1</strong> training.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="i1-training">
+        <div class="container">
+          <div class="section-heading">
+            <h2>i1 Training and Evaluation</h2>
+          </div>
+          <div class="prose">
+            <p>The final model combines the controlled-experiment findings: a dual-stream MMDiT backbone, long skip connections, a single T5Gemma-2B text encoder with a 2-block transformer adapter, no AdaLN, both sinusoidal and RoPE positional embeddings, shared sandwich normalizations, long captions, equal dataset weighting, and prompt rewriting at inference.</p>
+          </div>
+          <div class="subfigure-row architecture-row">
+            <figure>
+              <img src="static/images/figures/architecture_v4_outside.png" alt="overall architecture of i1.">
+              <figcaption>overall architecture</figcaption>
+            </figure>
+            <figure>
+              <img src="static/images/figures/architecture_v5_inside.png" alt="One transformer block of i1.">
+              <figcaption>one transformer block</figcaption>
+            </figure>
+          </div>
+          <p class="figure-note"><strong>The architecture of our final i1 model</strong>. Building on an MMDiT backbone, we use a large text encoder adapter consisting of 2 transformer blocks, remove noise conditioning (<i>i.e.</i>, AdaLN), add long skip connections, combine both sinusoidal and RoPE positional embeddings, and share sandwich normalizations across text and image streams.</p>
+
+          <div class="prose">
+            <p>We progressively train on 256-, 512-, and 1024-resolution images. The 512- and 1024-resolution datasets are built from the 256-resolution training data by filtering for images whose shorter edge meets the target resolution.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>training stage</th>
+                  <th>#images</th>
+                  <th>training steps</th>
+                  <th>batch size</th>
+                  <th>training timestep shift value</th>
+                  <th>TPU v5p-128 hours</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>256-resolution</td><td>162.9M</td><td>2.0M</td><td>512</td><td>N/A</td><td>383.0</td></tr>
+                <tr><td>512-resolution</td><td>9.7M</td><td>0.5M</td><td>512</td><td>N/A</td><td>174.4</td></tr>
+                <tr><td>1024-resolution</td><td>4.3M</td><td>0.3M</td><td>128</td><td>3.33</td><td>150.9</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note"><strong>Training configurations and compute resources for the final i1 model</strong> at each training stage.</p>
+
+          <figure class="figure-card">
+            <img src="static/images/figures/performance_curve_3b_256.png" alt="Benchmark performance during 256-resolution pre-training.">
+          </figure>
+          <p class="figure-note"><strong>Benchmark performance of i1 during 256-resolution pre-training</strong>. Performance stabilizes around 500K iterations and largely converges by 2M iterations.</p>
+
+          <div class="qualitative-caplen progression-qual">
+            <div class="prompt-cell"><strong>Prompt</strong>: Argentinian soccer star Lionel Messi in the heat of the 2022 FIFA World Cup Final against France... (240 words)</div>
+            <img src="static/images/generated/progression/prism_long_text_87/100K.png" alt="PRISM prompt after 100K iterations.">
+            <img src="static/images/generated/progression/prism_long_text_87/200K.png" alt="PRISM prompt after 200K iterations.">
+            <img src="static/images/generated/progression/prism_long_text_87/500K.png" alt="PRISM prompt after 500K iterations.">
+            <img src="static/images/generated/progression/prism_long_text_87/2M.png" alt="PRISM prompt after 2M iterations.">
+            <div class="prompt-cell"><strong>Prompt</strong>: An appealing poster designed in warm bohemian style announcing a folk music concert event... (109 words)</div>
+            <img src="static/images/generated/progression/longtext_127/100K.png" alt="LongText prompt after 100K iterations.">
+            <img src="static/images/generated/progression/longtext_127/200K.png" alt="LongText prompt after 200K iterations.">
+            <img src="static/images/generated/progression/longtext_127/500K.png" alt="LongText prompt after 500K iterations.">
+            <img src="static/images/generated/progression/longtext_127/2M.png" alt="LongText prompt after 2M iterations.">
+            <span></span>
+            <span>100K iterations</span>
+            <span>200K iterations</span>
+            <span>500K iterations</span>
+            <span>2M iterations</span>
+          </div>
+          <p class="figure-note"><strong>Example generated images at different iterations of 256-resolution training</strong>. Overall image quality and text-rendering capability improve throughout the training run, mirroring the benchmark score improvements.</p>
+
+          <div class="prose">
+            <p>Text rendering performance improves substantially with 512-resolution training, even when text-rendering datasets are not used.</p>
+          </div>
+          <figure class="figure-card">
+            <img src="static/images/figures/performance_bar_3b_512.png" alt="Benchmark performance at 512-resolution with different training sets.">
+          </figure>
+          <p class="figure-note"><strong>Benchmark performance of i1 at 512-resolution</strong> with different training sets. PRISM and LongText improve substantially with 512-resolution training, even when text rendering data is not used.</p>
+
+          <div class="subfigure-row">
+            <figure>
+              <div class="image-pair">
+                <img src="static/images/generated/text_render_res/256/57_2.png" alt="256-resolution text rendering example 1.">
+                <img src="static/images/generated/text_render_res/256/115_3.png" alt="256-resolution text rendering example 2.">
+              </div>
+              <figcaption>256-resolution model</figcaption>
+            </figure>
+            <figure>
+              <div class="image-pair">
+                <img src="static/images/generated/text_render_res/512/57_2.png" alt="512-resolution text rendering example 1.">
+                <img src="static/images/generated/text_render_res/512/115_3.png" alt="512-resolution text rendering example 2.">
+              </div>
+              <figcaption>512-resolution model</figcaption>
+            </figure>
+          </div>
+          <p class="figure-note"><strong>Text rendering improves substantially after 512-resolution training</strong>, as demonstrated by example images generated from our 256-resolution and 512-resolution checkpoints using the same input prompts from LongText-Bench.</p>
+          <div class="finding-box">
+            <span class="finding-label">Finding 10</span>
+            <p>Training a model to achieve strong high-resolution generation does not require high-resolution training data to match the full breadth of the low-resolution pre-training data.</p>
+            <p><strong>Design</strong>: We do not further expand the resolution-filtered high-resolution datasets for <strong>i1</strong> training.</p>
+          </div>
+
+          <div class="prose">
+            <p>At inference, <strong>i1</strong> uses CFG scale 12, Rescale CFG with strength 1, and a single prompt-rewriting meta-prompt for all input prompts. We evaluate the 1024-resolution checkpoint on GenEval, DPG-Bench, PRISM, CVTG-2K, and LongText-Bench.</p>
+          </div>
+          <div class="table-wrap wide-table comparison-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>model</th>
+                  <th>#params</th>
+                  <th>GenEval</th>
+                  <th>DPG-Bench</th>
+                  <th>PRISM</th>
+                  <th>CVTG-2K</th>
+                  <th>LongText-Bench</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="group"><td colspan="7">API call only</td></tr>
+                <tr><td>GPT Image 1 [High]</td><td>-</td><td><strong>0.84*</strong></td><td>85.15*</td><td>-</td><td><strong>0.8569*</strong></td><td><strong>0.956*</strong></td></tr>
+                <tr><td>Seedream 3.0</td><td>-</td><td><strong>0.84*</strong></td><td><strong>88.27*</strong></td><td>-</td><td>0.5924*</td><td>0.896*</td></tr>
+                <tr class="group"><td colspan="7">Open weights only</td></tr>
+                <tr><td>FLUX.1 [Dev]</td><td>12B</td><td>0.66*</td><td>83.84*</td><td>65.1</td><td>0.4965*</td><td>0.607*</td></tr>
+                <tr><td>SD3 Medium</td><td>2B</td><td>0.62*</td><td>84.08*</td><td>61.9</td><td>0.4037</td><td>0.322</td></tr>
+                <tr><td>Janus-Pro-7B</td><td>7B</td><td>0.80*</td><td>84.19*</td><td>60.0</td><td>0.0667</td><td>0.019*</td></tr>
+                <tr><td>BAGEL</td><td>14B</td><td><strong>0.88*</strong></td><td>85.44</td><td>61.8</td><td>0.3642</td><td>0.373*</td></tr>
+                <tr><td>HiDream-I1-Full</td><td>17B</td><td>0.83*</td><td>85.89*</td><td>66.1</td><td>0.7738</td><td>0.543*</td></tr>
+                <tr><td>Lumina-Image 2.0</td><td>3B</td><td>0.73*</td><td>87.20*</td><td>63.5</td><td>0.1577</td><td>0.088</td></tr>
+                <tr><td>Z-Image</td><td>6B</td><td>0.84*</td><td>88.14*</td><td><strong>74.2</strong></td><td><strong>0.8671*</strong></td><td>0.935*</td></tr>
+                <tr><td>Qwen-Image</td><td>20B</td><td>0.87*</td><td><strong>88.32*</strong></td><td>73.9</td><td>0.8288*</td><td><strong>0.943*</strong></td></tr>
+                <tr class="group"><td colspan="7">Open weights + data + training code</td></tr>
+                <tr><td>BLIP3o-4B</td><td>4B</td><td>0.77</td><td>79.73</td><td>53.2</td><td>0.0353</td><td>0.023</td></tr>
+                <tr><td>PixNerd</td><td>1B</td><td>0.73*</td><td>80.9*</td><td>53.3</td><td>0.0006</td><td>0.020</td></tr>
+                <tr><td>DeCo</td><td>1B</td><td>0.86*</td><td>81.4*</td><td>53.1</td><td>0.0014</td><td>0.003</td></tr>
+                <tr><td>BLIP3o-N-S</td><td>3B</td><td>0.87</td><td>81.98</td><td>56.8</td><td>0.2493</td><td>0.110</td></tr>
+                <tr><td>BLIP3o-N-G-G</td><td>3B</td><td><strong>0.90</strong></td><td>81.93</td><td>57.5</td><td>0.2442</td><td>0.114</td></tr>
+                <tr><td>BLIP3o-N-G-T</td><td>3B</td><td>0.86</td><td>79.77</td><td>56.8</td><td>0.3330</td><td>0.153</td></tr>
+                <tr class="ours"><td><strong>i1 (Ours)</strong></td><td>3B</td><td>0.84</td><td><strong>86.73</strong></td><td><strong>70.1</strong></td><td><strong>0.8531</strong></td><td><strong>0.922</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note"><strong>Performance on representative text-to-image benchmarks</strong>. <strong>i1</strong> achieves state-of-the-art performance among fully open models on all five benchmarks except GenEval and outperforms several leading weight-only models.</p>
+        </div>
+      </section>
+
+      <section class="section band" id="citation">
+        <div class="container">
+          <div class="closing-note takeaway-note">
+            <p><strong>Takeaway</strong>. Strong text-to-image models do not have to rely on opaque recipes, inaccessible data, or highly specialized new components. Through controlled experiments, <strong>i1</strong> shows that a simple, fully open recipe built from public datasets and carefully validated design choices can be competitive with leading open-weight models. We hope the released model, code, data recipe, and ablations provide both a strong baseline and a useful reference point for cumulative, reproducible research.</p>
+          </div>
+          <div class="closing-note paper-note">
+            <p>This project page only summarizes the main findings and design choices. The paper includes many additional experiments, analyses, and discussions; readers who want the full context are encouraged to read the <a href="https://arxiv.org/abs/2606.11289">complete paper</a>.</p>
+          </div>
+          <h2>Citation</h2>
+          <pre class="bibtex"><code>@article{zeng2026i1,
+  title={i1: A Simple and Fully Open Recipe for Strong Text-to-Image Models},
+  author={Zeng, Boya and Luo, Tianze and Pu, Shu and Shen, Jucheng and Lu, Taiming and Sarch, Gabriel and Liu, Zhuang},
+  journal={arXiv preprint arXiv:2606.11289},
+  year={2026}
+}</code></pre>
+        </div>
+      </section>
+    </main>
+
+  </body>
+</html>

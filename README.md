@@ -5,7 +5,7 @@ Official code for **i1: A Simple and Fully Open Recipe for Strong Text-to-Image 
 > **i1: A Simple and Fully Open Recipe for Strong Text-to-Image Models**<br>
 > [Boya Zeng](https://boyazeng.github.io), [Tianze Luo](https://luotianze666.github.io), [Shu Pu](https://urrealhero.github.io/MyPersonalWeb/), [Jucheng Shen](https://juchengshen.github.io), [Taiming Lu](https://taiminglu.com), [Gabriel Sarch](http://gabesarch.me), [Zhuang Liu](https://www.cs.princeton.edu/~zhuangl)
 > <br>Princeton University<br>
-> [arXiv coming soon][[`model`](https://huggingface.co/zlab-princeton/i1-3B)][[`dataset`](https://huggingface.co/datasets/zlab-princeton/i1-captions)]
+> [[`arXiv`](https://arxiv.org/abs/2606.11289)][[`model`](https://huggingface.co/zlab-princeton/i1-3B)][[`dataset`](https://huggingface.co/datasets/zlab-princeton/i1-captions)][[`project page`](https://zlab-princeton.github.io/i1/)]
 
 <p align="center">
 <img src="./docs/static/images/teaser.png" width=90% height=90% 
@@ -77,8 +77,8 @@ If you find this repository helpful, please consider citing:
 ```bibtex
 @article{zeng2026i1,
   title={i1: A Simple and Fully Open Recipe for Strong Text-to-Image Models},
-  author={Boya Zeng and Tianze Luo and Shu Pu and Jucheng Shen and Taiming Lu and Gabriel Sarch and Zhuang Liu},
-  url={https://github.com/zlab-princeton/i1},
-  year={2026},
+  author={Zeng, Boya and Luo, Tianze and Pu, Shu and Shen, Jucheng and Lu, Taiming and Sarch, Gabriel and Liu, Zhuang},
+  journal={arXiv preprint arXiv:2606.11289},
+  year={2026}
 }
 ```
