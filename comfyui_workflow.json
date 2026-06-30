@@ -1,97 +1,30 @@
 {
   "1": {
     "inputs": {
-      "seed": 12345,
+      "prompt": "A highly detailed digital portrait of a woman with piercing blue eyes, intricate facial features, photorealistic skin texture, volumetric lighting, cinematic composition, professional photography, 8k quality",
       "steps": 250,
-      "cfg": 12.0,
+      "cfg_scale": 12.0,
       "cfg_rescale": 1.0,
-      "sampler_name": "euler",
-      "scheduler": "simple",
-      "positive": "a beautiful landscape with mountains and a lake",
-      "negative": "",
-      "latent_image": [
-        "3",
-        0
-      ]
+      "seed": 42,
+      "width": 1024,
+      "height": 1024,
+      "rewrite_prompt": false,
+      "rewriter_model": "Qwen/Qwen3-4B-Instruct-2507",
+      "inference_timestep_shift": 0.3,
+      "checkpoint_path": ""
     },
-    "class_type": "i1_Sampler",
+    "class_type": "i1Sampler",
     "_meta": {
-      "title": "i1 Diffusion Sampler"
+      "title": "i1 Text-to-Image Sampler"
     }
   },
   "2": {
     "inputs": {
-      "samples": [
+      "images": [
         "1",
         0
       ],
-      "vae": [
-        "4",
-        0
-      ]
-    },
-    "class_type": "VAEDecode",
-    "_meta": {
-      "title": "VAE Decode"
-    }
-  },
-  "3": {
-    "inputs": {
-      "width": 1024,
-      "height": 1024,
-      "batch_size": 1
-    },
-    "class_type": "EmptyLatentImage",
-    "_meta": {
-      "title": "Empty Latent Image"
-    }
-  },
-  "4": {
-    "inputs": {
-      "vae_name": "flux_vae"
-    },
-    "class_type": "VAELoader",
-    "_meta": {
-      "title": "Load VAE"
-    }
-  },
-  "5": {
-    "inputs": {
-      "text": "a beautiful landscape with mountains and a lake"
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Positive)"
-    }
-  },
-  "6": {
-    "inputs": {
-      "ckpt_name": "i1_3b_1024_resolution.pt"
-    },
-    "class_type": "CheckpointLoaderSimple",
-    "_meta": {
-      "title": "Load Checkpoint"
-    }
-  },
-  "7": {
-    "inputs": {
-      "images": [
-        "2",
-        0
-      ]
-    },
-    "class_type": "PreviewImage",
-    "_meta": {
-      "title": "Preview Image"
-    }
-  },
-  "8": {
-    "inputs": {
-      "filename_prefix": "i1_generation",
-      "images": [
-        "2",
-        0
-      ]
+      "filename_prefix": "i1_output"
     },
     "class_type": "SaveImage",
     "_meta": {
