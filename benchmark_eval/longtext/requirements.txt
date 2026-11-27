@@ -1,9 +1,9 @@
 timm
-torch==2.6.0
+torch==2.13.0
 torchvision==0.21.0
 accelerate
-diffusers==0.34.0
-transformers==4.51.3
+diffusers==0.38.0
+transformers==5.10.1
 einops
-protobuf==3.20.3
+protobuf==5.29.6
 sentencepiece
