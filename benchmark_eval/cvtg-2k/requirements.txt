@@ -1,4 +1,4 @@
-torch==2.1.2
+torch==2.13.0
 torchvision==0.16.2
 torchaudio==2.1.2
 
@@ -6,15 +6,15 @@ numpy==1.26.4
 scipy==1.15.3
 scikit-learn==1.7.1
 
-Pillow==10.4.0
+Pillow==13.0.0
 scikit-image==0.25.2
 opencv-python==4.11.0.86
 
 open-clip-torch>=2.32.0
 openai-clip==1.0.1
-transformers==4.36.1
+transformers==5.10.1
 diffusers==0.30.0
-accelerate==1.9.0
+accelerate==1.15.0
 t2v-metrics==1.2
 
 albucore==0.0.24
